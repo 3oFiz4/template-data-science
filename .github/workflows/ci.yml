@@ -1,0 +1,42 @@
+name: Data Science CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  quality-and-safety:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Needed for gitleaks commit scanning
+
+      - name: Scan for leaked secrets (Kaggle tokens, API keys)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Block large data/model files (>5MB)
+        run: |
+          LARGE_FILES=$(find . -path ./.git -prune -o -type f -size +5M -print)
+          if [ -n "$LARGE_FILES" ]; then
+            echo "Error: Files larger than 5MB detected. Move them to data/ or .gitignore:"
+            echo "$LARGE_FILES"
+            exit 1
+          fi
+
+      - name: Set up uv & Python
+        uses: astral-sh/setup-uv@v4
+
+      - name: Lint and format check (Python + Notebooks)
+        run: |
+          uvx ruff check .
+          uvx ruff format --check .
+
+      - name: Verify notebook outputs are stripped
+        run: |
+          uvx nbstripout --verify notebooks/**/*.ipynb

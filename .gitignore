@@ -1,0 +1,15 @@
+# Secrets
+.env
+
+# Data
+data/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Python / uv
+.venv/
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.DS_Store
